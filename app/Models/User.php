@@ -3,6 +3,9 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use App\Models\Doctor\DoctorScheduleDay;
+use App\Models\Doctor\Specialitie;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Permission\Traits\HasRoles;
@@ -28,6 +31,7 @@ class User extends Authenticatable implements JWTSubject
         'password',
         ///
         'surname',
+        "specialitie_id",
         'birth_date',
         'gender',
         'mobile',
@@ -76,5 +80,15 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
+    }
+
+    public function specialitie()
+    {
+        return $this->belongsTo(Specialitie::class);
+    }
+
+    public function schedule_days()
+    {
+        return $this->hasMany(DoctorScheduleDay::class);
     }
 }

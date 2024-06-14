@@ -33,7 +33,7 @@ class RolesController extends Controller
      */
     public function store(Request $request)
     {
-        //
+
         $is_role = Role::where("name",$request->name)->first();
         if ($is_role) {
             return response()->json([
@@ -51,6 +51,7 @@ class RolesController extends Controller
         }
         return response()->json([
             "message"=>200,
+            "msg"=>"Se creo correctamente el Rol",
         ]);
     }
 
@@ -86,6 +87,7 @@ class RolesController extends Controller
         $role->syncPermissions($request->permisions);
         return response()->json([
             "message"=>200,
+            "msg"=>"Se actualizo correctamente"
         ]);
     }
 

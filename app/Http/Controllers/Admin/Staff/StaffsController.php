@@ -10,6 +10,7 @@ use App\Http\Resources\User\UserResource;
 use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class StaffsController extends Controller
 {
@@ -19,10 +20,14 @@ class StaffsController extends Controller
     public function index(Request $request)
     {
         $search = $request->search;
-        $users = User::where('name','like','%'.$search.'%')
-                ->orWhere('surname','like','%'.$search.'%')
-                ->orWhere('email','like','%'.$search.'%')
+        $users = User::where(DB::raw("CONCAT(users.name,' ',IFNULL(users.surname,' '),' ',users.email)"),"like","%".$search."%")
+        //('name','like','%'.$search.'%')
+                // ->orWhere('surname','like','%'.$search.'%')
+                // ->orWhere('email','like','%'.$search.'%')
                 ->orderBy('id','desc')
+                ->whereHas("roles",function($q){
+                    $q->where("name","not like","%DOCTOR%");
+                })
                 ->get();
         return response()->json([
             'users'=> UserCollection::make($users),
@@ -31,7 +36,7 @@ class StaffsController extends Controller
 
     public function config()
     {
-        $roles = Role::all();
+        $roles = Role::where("name","not like","%DOCTOR")->get();;
         return response()->json([
             "role"=>$roles,
         ]);
@@ -42,7 +47,6 @@ class StaffsController extends Controller
      */
     public function store(Request $request)
     {
-    //$prueva=($request->all());
         $users_is_valid = User::where('email',$request->email)->first();
 
         if ($users_is_valid) {
@@ -62,14 +66,18 @@ class StaffsController extends Controller
         }
 
         $date_clean = preg_replace('/\(.*\)|[A-Z]{3}-\d{4}/', '', $request->birth_date);
+
         $request->request->add(["birth_date" => Carbon::parse($date_clean)->format("Y-m-d h:i:s")]);
 
         $user = User::create($request->all());
+
         $role = Role::findOrFail($request->role_id);
+
         $user->assignRole($role);
+
         return response()->json([
             "message"=>200,
-            "user"=>$user,
+            "user"=>"Usuario Creado Exitosamente",
            // "reques"=>$prueva
         ]);
     }
@@ -114,13 +122,15 @@ class StaffsController extends Controller
             $request->request->add(['password'=> bcrypt($request->password)]);
         }
 
+        if($request->birth_date){
+            $date_clean = preg_replace('/\(.*\)|[A-Z]{3}-\d{4}/', '', $request->birth_date);
+            $request->request->add(["birth_date" => Carbon::parse($date_clean)->format("Y-m-d h:i:s")]);
+        }
 
-        $date_clean = preg_replace('/\(.*\)|[A-Z]{3}-\d{4}/', '', $request->birth_date);
-        $request->request->add(["birth_date" => Carbon::parse($date_clean)->format("Y-m-d h:i:s")]);
 
         $user->update($request->all());
 
-        if ($request->role_id != $user->roles()->first()->id) {
+        if ($request->role_id && $request->role_id != $user->roles()->first()->id) {
 
             $role_old = Role::findOrFail($user->roles()->first()->id);
             $user->remove($role_old);
@@ -131,7 +141,8 @@ class StaffsController extends Controller
 
 
         return response()->json([
-            "message"=>200
+            "message"=>200,
+            "msg"=>"Se Actualizo el Usuario CORRECTAMENTE"
         ]);
     }
 
@@ -147,7 +158,8 @@ class StaffsController extends Controller
 
         $user->delete();
         return response()->json([
-            "message"=> 200
+            "message"=> 200,
+            "msg"=>"Se elimino Correctamente"
         ]);
 
     }

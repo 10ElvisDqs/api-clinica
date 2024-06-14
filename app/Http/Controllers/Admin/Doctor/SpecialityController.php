@@ -48,6 +48,7 @@ class SpecialityController extends Controller
 
         return response()->json([
             "message" => 200,
+            "msg"=>"SE CREO CORRECTAMENTE SPECIALITIES"
         ]);
     }
 
@@ -82,6 +83,7 @@ class SpecialityController extends Controller
         $specialitie->update($request->all());
         return response()->json([
             "message" => 200,
+            "msg"=>"SE MODIFICO CORRECTAMENTE"
         ]);
     }
 
@@ -94,6 +96,7 @@ class SpecialityController extends Controller
         $specialitie->delete();
         return response()->json([
             "message" => 200,
+            "msg"=>"SE ELIMINO CORRECTAMENTE"
         ]);
     }
 }
