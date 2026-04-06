@@ -9,93 +9,151 @@ use Spatie\Permission\PermissionRegistrar;
 
 class PermissionsDemoSeeder extends Seeder
 {
-    /**
-     * Create the initial roles and permissions.
-     *
-     * @return void
-     */
     public function run()
     {
-        // Reset cached roles and permissions
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // create permissions
-        Permission::create(['guard_name' => 'api','name' => 'register_rol']);
-        Permission::create(['guard_name' => 'api','name' => 'list_rol']);
-        Permission::create(['guard_name' => 'api','name' => 'edit_rol']);
-        Permission::create(['guard_name' => 'api','name' => 'delete_rol']);
+        // ── Permisos ────────────────────────────────────────────────────────
+        $permisos = [
+            // Roles
+            'register_rol', 'list_rol', 'edit_rol', 'delete_rol',
+            // Doctores
+            'register_doctor', 'list_doctor', 'edit_doctor', 'delete_doctor', 'profile_doctor',
+            // Pacientes
+            'register_patient', 'list_patient', 'edit_patient', 'delete_patient', 'profile_patient',
+            // Staff
+            'register_staff', 'list_staff', 'edit_staff', 'delete_staff',
+            // Citas
+            'register_appointment', 'list_appointment', 'edit_appointment', 'delete_appointment',
+            // Especialidades
+            'register_specialty', 'list_specialty', 'edit_specialty', 'delete_specialty',
+            // Pagos
+            'show_payment', 'edit_payment',
+            // Actividad y calendario
+            'activitie', 'calendar',
+            // Reportes
+            'expense_report', 'invoice_report',
+            // Configuración
+            'settings',
+            // Ingreso
+            'list_ingreso', 'register_ingreso', 'edit_ingreso', 'delete_ingreso',
+            // Egreso
+            'list_egreso', 'register_egreso', 'edit_egreso', 'delete_egreso',
+            // Seguimiento
+            'list_seguimiento', 'register_seguimiento', 'edit_seguimiento', 'delete_seguimiento',
+            // Portal paciente
+            'view_own_profile', 'view_own_appointments', 'view_own_history', 'view_own_seguimientos',
+        ];
 
-        Permission::create(['guard_name' => 'api','name' => 'register_doctor']);
-        Permission::create(['guard_name' => 'api','name' => 'list_doctor']);
-        Permission::create(['guard_name' => 'api','name' => 'edit_doctor']);
-        Permission::create(['guard_name' => 'api','name' => 'delete_doctor']);
-        Permission::create(['guard_name' => 'api','name' => 'profile_doctor']);
+        foreach ($permisos as $permiso) {
+            Permission::firstOrCreate(['guard_name' => 'api', 'name' => $permiso]);
+        }
 
-        Permission::create(['guard_name' => 'api','name' => 'register_patient']);
-        Permission::create(['guard_name' => 'api','name' => 'list_patient']);
-        Permission::create(['guard_name' => 'api','name' => 'edit_patient']);
-        Permission::create(['guard_name' => 'api','name' => 'delete_patient']);
-        Permission::create(['guard_name' => 'api','name' => 'profile_patient']);
+        // ── Roles y sus permisos ────────────────────────────────────────────
 
-        Permission::create(['guard_name' => 'api','name' => 'register_staff']);
-        Permission::create(['guard_name' => 'api','name' => 'list_staff']);
-        Permission::create(['guard_name' => 'api','name' => 'edit_staff']);
-        Permission::create(['guard_name' => 'api','name' => 'delete_staff']);
+        // Super-Admin — sin restricciones (Gate::before lo cubre todo)
+        $superAdmin = Role::firstOrCreate(['guard_name' => 'api', 'name' => 'Super-Admin']);
 
-        Permission::create(['guard_name' => 'api','name' => 'register_appointment']);
-        Permission::create(['guard_name' => 'api','name' => 'list_appointment']);
-        Permission::create(['guard_name' => 'api','name' => 'edit_appointment']);
-        Permission::create(['guard_name' => 'api','name' => 'delete_appointment']);
+        // ADMINISTRADOR — acceso total explícito
+        $admin = Role::firstOrCreate(['guard_name' => 'api', 'name' => 'ADMINISTRADOR']);
+        $admin->syncPermissions($permisos);
 
-        Permission::create(['guard_name' => 'api','name' => 'register_specialty']);
-        Permission::create(['guard_name' => 'api','name' => 'list_specialty']);
-        Permission::create(['guard_name' => 'api','name' => 'edit_specialty']);
-        Permission::create(['guard_name' => 'api','name' => 'delete_specialty']);
-
-        Permission::create(['guard_name' => 'api','name' => 'show_payment']);
-        Permission::create(['guard_name' => 'api','name' => 'edit_payment']);
-
-        Permission::create(['guard_name' => 'api','name' => 'activitie']);
-        Permission::create(['guard_name' => 'api','name' => 'calendar']);
-
-        Permission::create(['guard_name' => 'api','name' => 'expense_report']);
-        Permission::create(['guard_name' => 'api','name' => 'invoice_report']);
-
-        Permission::create(['guard_name' => 'api','name' => 'settings']);
-
-
-        // create roles and assign existing permissions
-        // $role1 = Role::create(['guard_name' => 'api','name' => 'writer']);
-        // $role1->givePermissionTo('edit articles');
-        // $role1->givePermissionTo('delete articles');
-
-        // $role2 = Role::create(['guard_name' => 'api','name' => 'admin']);
-        // $role2->givePermissionTo('publish articles');
-        // $role2->givePermissionTo('unpublish articles');
-
-        $role3 = Role::create(['guard_name' => 'api','name' => 'Super-Admin']);
-        // gets all permissions via Gate::before rule; see AuthServiceProvider
-
-        // create demo users
-        // $user = \App\Models\User::factory()->create([
-        //     'name' => 'Example User',
-        //     'email' => 'test@example.com',
-        //     'password' => bcrypt('12345678')
-        // ]);
-        // $user->assignRole($role1);
-
-        // $user = \App\Models\User::factory()->create([
-        //     'name' => 'Example Admin User',
-        //     'email' => 'admin@example.com',
-        //     'password' => bcrypt('12345678')
-        // ]);
-        // $user->assignRole($role2);
-
-        $user = \App\Models\User::factory()->create([
-            'name' => 'Super-Admin User',
-            'email' => 'josecode@gmail.com',
-            'password' => bcrypt('12345678')
+        // RECEPCIONISTA — pacientes, citas, pagos
+        $recep = Role::firstOrCreate(['guard_name' => 'api', 'name' => 'RECEPCIONISTA']);
+        $recep->syncPermissions([
+            'list_patient', 'register_patient', 'edit_patient', 'profile_patient',
+            'list_appointment', 'register_appointment', 'edit_appointment',
+            'show_payment', 'edit_payment',
+            'activitie',
+            'list_seguimiento',
         ]);
-        $user->assignRole($role3);
+
+        // ENFERMERO — pacientes, calendario, ingreso, egreso, seguimiento (ver)
+        $enfermero = Role::firstOrCreate(['guard_name' => 'api', 'name' => 'ENFERMERO']);
+        $enfermero->syncPermissions([
+            'list_patient', 'register_patient', 'edit_patient', 'profile_patient',
+            'calendar', 'activitie',
+            'list_ingreso', 'register_ingreso', 'edit_ingreso',
+            'list_egreso', 'register_egreso', 'edit_egreso',
+            'list_seguimiento',
+        ]);
+
+        // DOCTOR — pacientes (info), calendario, seguimiento, reporte
+        $doctor = Role::firstOrCreate(['guard_name' => 'api', 'name' => 'DOCTOR']);
+        $doctor->syncPermissions([
+            'list_patient', 'profile_patient',
+            'calendar', 'activitie',
+            'list_seguimiento', 'register_seguimiento', 'edit_seguimiento',
+            'invoice_report',
+        ]);
+
+        // PACIENTE — solo su propia información (portal paciente)
+        $paciente = Role::firstOrCreate(['guard_name' => 'api', 'name' => 'PACIENTE']);
+        $paciente->syncPermissions([
+            'view_own_profile', 'view_own_appointments', 'view_own_history', 'view_own_seguimientos',
+        ]);
+
+        // ── Usuarios de prueba ──────────────────────────────────────────────
+        $usuarios = [
+            [
+                'name'     => 'Super-Admin User',
+                'surname'  => '',
+                'email'    => 'dquinteros630@gmail.com',
+                'password' => bcrypt('12345678'),
+                'role'     => 'Super-Admin',
+            ],
+            [
+                'name'     => 'Administrador',
+                'surname'  => 'Clínica',
+                'email'    => 'admin@clinica.com',
+                'password' => bcrypt('12345678'),
+                'role'     => 'ADMINISTRADOR',
+            ],
+            [
+                'name'     => 'María',
+                'surname'  => 'García',
+                'email'    => 'recepcionista@clinica.com',
+                'password' => bcrypt('12345678'),
+                'role'     => 'RECEPCIONISTA',
+            ],
+            [
+                'name'     => 'Carlos',
+                'surname'  => 'Ramírez',
+                'email'    => 'enfermero@clinica.com',
+                'password' => bcrypt('12345678'),
+                'role'     => 'ENFERMERO',
+            ],
+            [
+                'name'     => 'Dr. José',
+                'surname'  => 'Pérez',
+                'email'    => 'doctor@clinica.com',
+                'password' => bcrypt('12345678'),
+                'role'     => 'DOCTOR',
+            ],
+        ];
+
+        foreach ($usuarios as $data) {
+            $roleName = $data['role'];
+            unset($data['role']);
+
+            $user = \App\Models\User::firstOrCreate(['email' => $data['email']], $data);
+
+            if ($user->roles->isEmpty()) {
+                $role = Role::where('name', $roleName)->where('guard_name', 'api')->first();
+                if ($role) $user->assignRole($role);
+            }
+        }
+
+        $this->command->info('Permisos, roles y usuarios creados correctamente:');
+        $this->command->table(
+            ['Rol', 'Email', 'Contraseña'],
+            [
+                ['Super-Admin',   'dquinteros630@gmail.com',    '12345678'],
+                ['ADMINISTRADOR', 'admin@clinica.com',          '12345678'],
+                ['RECEPCIONISTA', 'recepcionista@clinica.com',  '12345678'],
+                ['ENFERMERO',     'enfermero@clinica.com',      '12345678'],
+                ['DOCTOR',        'doctor@clinica.com',         '12345678'],
+            ]
+        );
     }
 }

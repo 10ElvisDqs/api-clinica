@@ -1,0 +1,5 @@
+/node_modules
+/vendor
+/public/storage
+/storage/*.log
+/storage/framework/cache/*

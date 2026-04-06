@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
 class StaffsController extends Controller
 {
@@ -19,6 +20,7 @@ class StaffsController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny',User::class);
         $search = $request->search;
         $users = User::where(DB::raw("CONCAT(users.name,' ',IFNULL(users.surname,' '),' ',users.email)"),"like","%".$search."%")
         //('name','like','%'.$search.'%')
@@ -47,6 +49,8 @@ class StaffsController extends Controller
      */
     public function store(Request $request)
     {
+        //               'create'
+        $this->authorize('create',User::class);
         $users_is_valid = User::where('email',$request->email)->first();
 
         if ($users_is_valid) {
@@ -87,6 +91,7 @@ class StaffsController extends Controller
      */
     public function show(string $id)
     {
+        $this->authorize('view',User::class);
         $user = User::findOrFail($id);
         return response()->json([
             "user"=>UserResource::make($user)
@@ -98,6 +103,7 @@ class StaffsController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        $this->authorize('update',User::class);
         $users_is_valid = User::where('id','<>',$id)->where('email',$request->email)->first();
 
         if ($users_is_valid) {
@@ -151,6 +157,7 @@ class StaffsController extends Controller
      */
     public function destroy(string $id)
     {
+        $this->authorize('delete',User::class);
         $user = User::findOrFail($id);
         if ($user->avatar) {
             Storage::delete($user->avatar);
@@ -162,5 +169,26 @@ class StaffsController extends Controller
             "msg"=>"Se elimino Correctamente"
         ]);
 
+    }
+
+    public function reporte(Request $request){
+
+        //$this->authorize('viewAny',User::class);
+        $search = $request->search;
+        $users = User::where(DB::raw("CONCAT(users.name,' ',IFNULL(users.surname,' '),' ',users.email)"),"like","%".$search."%")
+                ->orderBy('id','desc')
+                ->whereHas("roles",function($q){
+                    $q->where("name","not like","%DOCTOR%");
+                })
+                ->get();
+
+        $resultado = UserCollection::make($users);
+        $resultado = $resultado->toJson();
+        $resultado = json_decode($resultado, true);
+
+        //dd($resultado);
+        $pdf = PDF::setPaper('latter','landscape')->loadView('ReporteStaffs.pdf',compact('resultado'));
+        //return $pdf->stream();
+        return $pdf->download();
     }
 }

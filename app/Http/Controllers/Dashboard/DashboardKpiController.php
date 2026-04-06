@@ -31,6 +31,9 @@ class DashboardKpiController extends Controller
     }
 
     public function dashboard_admin(Request $request){
+        if(!auth('api')->user()->can('admin_dashboard')){
+            return response()->json(["message" => "EL USUARIO NO ESTA AUTORIZADO"],403);
+        }
         date_default_timezone_set('America/Lima');
         // MES ACTUAL - APPOINTMENTS
         $now = now();
@@ -136,7 +139,9 @@ class DashboardKpiController extends Controller
     }
 
     public function dashboard_admin_year(Request $request) {
-
+        if(!auth('api')->user()->can('admin_dashboard')){
+            return response()->json(["message" => "EL USUARIO NO ESTA AUTORIZADO"],403);
+        }
         $year = $request->year;
 
         $query_patient_by_genders = DB::table("appointments")->where("appointments.deleted_at",NULL)
@@ -195,6 +200,9 @@ class DashboardKpiController extends Controller
     }
 
     public function dashboard_doctor(Request $request){
+        if(!auth('api')->user()->can('doctor_dashboard')){
+            return response()->json(["message" => "EL USUARIO NO ESTA AUTORIZADO"],403);
+        }
         date_default_timezone_set('America/Lima');
 
         $doctor_id = $request->doctor_id;
@@ -316,6 +324,9 @@ class DashboardKpiController extends Controller
 
     public function dashboard_doctor_year(Request $request) {
 
+        if(!auth('api')->user()->can('doctor_dashboard')){
+            return response()->json(["message" => "EL USUARIO NO ESTA AUTORIZADO"],403);
+        }
         $year = $request->year;
         $doctor_id = $request->doctor_id;
 

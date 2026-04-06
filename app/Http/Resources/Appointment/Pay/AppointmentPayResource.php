@@ -15,6 +15,10 @@ class AppointmentPayResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $totalPayments = $this->resource->payments->sum('amount');
+
+        $pendingAmount = $this->resource->amount - $totalPayments;
+
         return [
             "id" => $this->resource->id,
             "doctor_id" => $this->resource->doctor_id,
@@ -30,8 +34,8 @@ class AppointmentPayResource extends JsonResource
                     "full_name" => $this->resource->patient->name. ' '.$this->resource->patient->surname,
                     "mobile" => $this->resource->patient->mobile,
                     "n_document" => $this->resource->patient->n_document,
-                    "name_companion" => $this->resource->patient->person->name_companion,
-                    "surname_companion" => $this->resource->patient->person->surname_companion
+                    "name_companion" => $this->resource->patient->person ? $this->resource->patient->person->name_companion : null,
+                    "surname_companion" => $this->resource->patient->person ? $this->resource->patient->person->surname_companion : null,
                 ] : NULL,
             "date_appointment" => $this->resource->date_appointment,
             "date_appointment_format" => Carbon::parse($this->resource->date_appointment)->format("Y-m-d"),
@@ -61,6 +65,7 @@ class AppointmentPayResource extends JsonResource
                 "id" => $this->resource->doctor->id,
                 "full_name" => $this->resource->doctor->name. ' '.$this->resource->doctor->surname
             ]: NULL,
+            "pending_amount" => $pendingAmount,
             "amount" => $this->resource->amount,
             "status_pay" => $this->resource->status_pay,
             "created_at" => $this->resource->created_at->format("Y-m-d h:i A"),

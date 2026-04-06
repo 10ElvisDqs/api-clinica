@@ -18,6 +18,7 @@ class Specialitie extends Model
      */
     protected $fillable = [
         'name',
+        'price',
         'state',
     ];
 

@@ -4,6 +4,7 @@ namespace App\Models\Appointment;
 
 use Carbon\Carbon;
 use App\Models\User;
+use Illuminate\Support\Str;
 use App\Models\Patient\Patient;
 use App\Models\Doctor\Specialitie;
 use Illuminate\Database\Eloquent\Model;
@@ -26,7 +27,9 @@ class Appointment extends Model
         "amount",
         "status_pay",
         "status",
-        "date_attention"
+        "date_attention",
+        "cron_state",
+        "stripe_session_id",
     ];
 
     public function setCreatedAtAttribute($value)
@@ -69,7 +72,32 @@ class Appointment extends Model
         return $this->hasOne(AppointmentAttention::class);
     }
 
-    public function scopefilterAdvance($query,$specialitie_id,$name_doctor,$date){
+    // public function scopefilterAdvance($query,$specialitie_id,$name_doctor,$date){
+
+    //     if($specialitie_id){
+    //         $query->where("specialitie_id",$specialitie_id);
+    //     }
+
+    //     if($name_doctor){
+    //         $query->whereHas("doctor",function($q) use($name_doctor){
+    //             $q->where("name","like","%".$name_doctor."%")
+    //             ->orWhere("surname","like","%".$name_doctor."%");
+    //         });
+    //     }
+
+    //     if($date){
+    //         $query->whereDate("date_appointment",Carbon::parse($date)->format("Y-m-d"));
+    //     }
+    //     return $query;
+    // }
+    public function scopefilterAdvance($query,$specialitie_id,$name_doctor,$date_start,$date_end,$user = null) {
+
+        //dd($user);
+        if($user){
+            if(str_contains(Str::upper($user->roles->first()->name),'DOCTOR')){
+              $query->where("doctor_id",$user->id);
+            }
+        }
 
         if($specialitie_id){
             $query->where("specialitie_id",$specialitie_id);
@@ -81,14 +109,29 @@ class Appointment extends Model
                 ->orWhere("surname","like","%".$name_doctor."%");
             });
         }
+        if ($date_start && $date_end) {
 
-        if($date){
-            $query->whereDate("date_appointment",Carbon::parse($date)->format("Y-m-d"));
+            $start = Carbon::parse($date_start)->startOfDay();
+            $end = Carbon::parse($date_end)->endOfDay();
+
+            $query->whereBetween("date_appointment", [$start, $end]);
+        } elseif ($date_start) {
+            // Si solo hay fecha de inicio
+            $query->where("date_appointment", ">=", Carbon::parse($date_start)->startOfDay());
+        } elseif ($date_end) {
+
+            $query->where("date_appointment", "<=", Carbon::parse($date_end)->endOfDay());
         }
         return $query;
     }
 
-    public function scopefilterAdvancePay($query,$specialitie_id,$search_doctor,$search_patient,$date_start,$date_end){
+    public function scopefilterAdvancePay($query,$specialitie_id,$search_doctor,$search_patient,$date_start,$date_end,$user = null){
+
+        if($user){
+            if(str_contains(Str::upper($user->roles->first()->name),'DOCTOR')){
+              $query->where("doctor_id",$user->id);
+            }
+        }
 
         if($specialitie_id){
             $query->where("specialitie_id",$specialitie_id);

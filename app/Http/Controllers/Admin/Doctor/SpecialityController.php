@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Doctor;
 use Illuminate\Http\Request;
 use App\Models\Doctor\Specialitie;
 use App\Http\Controllers\Controller;
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
 class SpecialityController extends Controller
 {
@@ -14,6 +15,7 @@ class SpecialityController extends Controller
     public function index(Request $request)
     {
         // QUE EL FILTRO POR NOMBRE DE ROL
+        $this->authorize('viewAny',Specialitie::class);
         $name = $request->search;
 
         $specialities = Specialitie::where("name","like","%".$name."%")->orderBy("id","desc")->get();
@@ -35,6 +37,7 @@ class SpecialityController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create',Specialitie::class);
         $is_specialitie = Specialitie::where("name",$request->name)->first();
 
         if($is_specialitie){
@@ -57,6 +60,7 @@ class SpecialityController extends Controller
      */
     public function show(string $id)
     {
+        $this->authorize('view',Specialitie::class);
         $specialitie = Specialitie::findOrFail($id);
         return response()->json([
             "id" => $specialitie->id,
@@ -70,6 +74,7 @@ class SpecialityController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        $this->authorize('update',Specialitie::class);
         $is_specialitie = Specialitie::where("id","<>",$id)->where("name",$request->name)->first();
 
         if($is_specialitie){
@@ -92,11 +97,31 @@ class SpecialityController extends Controller
      */
     public function destroy(string $id)
     {
+        $this->authorize('delete',Specialitie::class);
         $specialitie = Specialitie::findOrFail($id);
         $specialitie->delete();
         return response()->json([
             "message" => 200,
             "msg"=>"SE ELIMINO CORRECTAMENTE"
         ]);
+    }
+
+    public function reporte(Request $request){
+        //$this->authorize('viewAny',User::class);
+        $name = $request->search;
+
+        $specialities = Specialitie::where("name","like","%".$name."%")->orderBy("id","desc")->get();
+
+
+
+        $resultado =$specialities;
+        $resultado = $resultado->toJson();
+        $resultado = json_decode($resultado, true);
+
+        //dd($resultado);
+        // $pdf = PDF::setPaper('latter','landscape')->loadView('ReporteStaffs.pdf',compact('resultado'));
+        $pdf = PDF::loadView('ReporteSpeciality.pdf',compact('resultado'));
+        //return $pdf->stream();
+        return $pdf->download();
     }
 }

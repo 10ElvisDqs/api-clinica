@@ -15,21 +15,69 @@ use App\Models\Appointment\AppointmentPay;
 use App\Models\Doctor\DoctorScheduleJoinHour;
 use App\Http\Resources\Appointment\AppointmentResource;
 use App\Http\Resources\Appointment\AppointmentCollection;
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
 class AppointmentController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
+    // public function index(Request $request)
+    // {
+    //     $specialitie_id = $request->specialitie_id;
+    //     $name_doctor = $request->search;
+    //     $date = $request->date;
+
+    //     $appointments = Appointment::filterAdvance($specialitie_id,$name_doctor,$date)->orderBy("id","desc")
+    //                     ->paginate(20);
+
+    //     return response()->json([
+    //         "total" => $appointments->total(),
+    //         "appointments" => AppointmentCollection::make($appointments),
+    //         "data"=> $request->date,
+
+    //     ]);
+    // }
+
+    // public function index(Request $request)
+    // {
+    //     // Obtener los parámetros de filtro del request
+    //     $this->authorize('viewAny',Appointment::class);
+    //     $specialitie_id = $request->specialitie_id;
+    //     $name_doctor = $request->search;
+    //     $date_start = $request->date_start;
+    //     $date_end = $request->date_end;
+    //     if ($date_start) {
+    //         $date_start = date('Y-m-d 00:00:00', strtotime($date_start));
+    //     }
+
+    //     if ($date_end) {
+    //         $date_end = date('Y-m-d 23:59:59', strtotime($date_end));
+    //     }
+    //     // Llamar al método filterAdvance del modelo Appointment con todos los parámetros
+    //     $appointments = Appointment::filterAdvance($specialitie_id, $name_doctor, $date_start, $date_end)
+    //         ->orderBy("id", "desc")
+    //         ->paginate(150);
+
+    //     // Devolver la respuesta en formato JSON
+    //     return response()->json([
+    //         "total" => $appointments->total(),
+    //         "appointments" => AppointmentCollection::make($appointments),
+    //     ]);
+    // }
     public function index(Request $request)
     {
+        $this->authorize('viewAny',Appointment::class);
+        $date = $request->date;
         $specialitie_id = $request->specialitie_id;
         $name_doctor = $request->search;
-        $date = $request->date;
+        $date_start = $request->date_start;
+        $date_end = $request->date_end;
+        $user = auth("api")->user();
 
-        $appointments = Appointment::filterAdvance($specialitie_id,$name_doctor,$date)->orderBy("id","desc")
+
+        $appointments = Appointment::filterAdvance($specialitie_id,$name_doctor,$date_start,$date_end,$user)->orderBy("id","desc")
                         ->paginate(20);
-
         return response()->json([
             "total" => $appointments->total(),
             "appointments" => AppointmentCollection::make($appointments),
@@ -88,6 +136,7 @@ class AppointmentController extends Controller
 
     public function filter(Request $request) {
 
+        $this->authorize('filter',Appointment::class);
         $date_appointment = $request->date_appointment;
         $hour = $request->hour;
         $specialitie_id = $request->specialitie_id;
@@ -169,8 +218,9 @@ class AppointmentController extends Controller
         $specialitie_id = $request->specialitie_id;
         $search_doctor = $request->search_doctor;
         $search_patient = $request->search_patient;
+        $user = auth("api")->user();
 
-        $appointments = Appointment::filterAdvancePay($specialitie_id,$search_doctor,$search_patient,null,null)
+        $appointments = Appointment::filterAdvancePay($specialitie_id,$search_doctor,$search_patient,null,null,$user)
                     ->orderBy("id","desc")
                     ->get();
 
@@ -208,6 +258,7 @@ class AppointmentController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create',Appointment::class);
         // doctor_id
         // name
         // surname
@@ -221,10 +272,14 @@ class AppointmentController extends Controller
         // amount
         // amount_add
         // method_payment
-
+        //dd($request);
         $patient = null;
 
         $patient = Patient::where("n_document",$request->n_document)->first();
+        // return response()->json([
+        //     "message" => 200,
+        //     "patient"=> $patient,
+        // ]);
 
         if(!$patient){
             $patient = Patient::create([
@@ -239,11 +294,16 @@ class AppointmentController extends Controller
                 "surname_companion" => $request->surname_companion,
             ]);
         }else{
-            $patient->person->update([
-                "name_companion" => $request->name_companion,
-                "surname_companion" => $request->surname_companion,
-            ]);
+            if ($patient->person) {
+                $patient->person->update([
+                    "name_companion" => $request->name_companion,
+                    "surname_companion" => $request->surname_companion,
+                ]);
+                # code...
+            }
         }
+
+
 
         $appointment =  Appointment::create([
             "doctor_id" => $request->doctor_id,
@@ -276,6 +336,8 @@ class AppointmentController extends Controller
     public function show(string $id)
     {
        $appointment = Appointment::findOrFail($id);
+    //    dd($appointment);
+       $this->authorize('view',$appointment);
 
        return response()->json([
         "appointment" => AppointmentResource::make($appointment)
@@ -289,6 +351,7 @@ class AppointmentController extends Controller
     {
 
         $appointment = Appointment::findOrFail($id);
+        $this->authorize('update',$appointment);
         // 50
         // 100 - 200 30
         if($appointment->payments->sum("amount") > $request->amount){
@@ -318,9 +381,43 @@ class AppointmentController extends Controller
     public function destroy(string $id)
     {
         $appointment = Appointment::findOrFail($id);
+        $this->authorize('delete',$appointment);
         $appointment->delete();
        return response()->json([
         "message" => 200,
        ]);
+    }
+
+    public function reporte(Request $request)
+    {
+        // Obtener los parámetros de filtro del request
+        $specialitie_id = $request->specialitie_id;
+        $name_doctor = $request->search;
+        $date_start = $request->date_start;
+        $date_end = $request->date_end;
+        $user = auth("api")->user();
+
+            // Formatear las fechas de inicio y fin
+            if ($date_start) {
+                $date_start = date('Y-m-d 00:00:00', strtotime($date_start));
+            }
+
+            if ($date_end) {
+                $date_end = date('Y-m-d 23:59:59', strtotime($date_end));
+            }        $date_end = $request->date_end;
+
+            // Llamar al método filterAdvance del modelo Appointment con todos los parámetros
+            $appointments = Appointment::filterAdvance($specialitie_id, $name_doctor, $date_start, $date_end,$user)
+                ->orderBy("id", "desc")
+                ->paginate(20);
+
+
+        $resultado = AppointmentCollection::make($appointments);
+        $resultado = $resultado->toJson();
+        $resultado = json_decode($resultado, true);
+        // Generar el PDF
+        $pdf = PDF::loadView('ReporteAppointment.pdf', compact('resultado'));
+        // Retornar el PDF como respuesta
+        return $pdf->download('reporte_citas.pdf');
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Rol;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use App\Http\Controllers\Controller;
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
 class RolesController extends Controller
 {
@@ -13,6 +14,11 @@ class RolesController extends Controller
      */
     public function index(Request $request)
     {
+        // QUE EL FILTRO POR NOMBRE DE ROL
+        if(!auth('api')->user()->can('list_rol')){
+            return response()->json(["message" => "EL USUARIO NO ESTA AUTORIZADO"],403);
+        }
+
         $name = $request->search;
         $roles = Role::where("name","like","%".$name."%")->orderBy("id","desc")->get();
         return response()->json([
@@ -34,6 +40,9 @@ class RolesController extends Controller
     public function store(Request $request)
     {
 
+        if(!auth('api')->user()->can('register_rol')){
+            return response()->json(["message" => "EL USUARIO NO ESTA AUTORIZADO"],403);
+        }
         $is_role = Role::where("name",$request->name)->first();
         if ($is_role) {
             return response()->json([
@@ -60,6 +69,9 @@ class RolesController extends Controller
      */
     public function show(string $id)
     {
+        if(!auth('api')->user()->can('edit_rol')){
+            return response()->json(["message" => "EL USUARIO NO ESTA AUTORIZADO"],403);
+        }
         $role = Role::findOrFail($id);
         return response()->json([
             "id"=>$role->id,
@@ -75,6 +87,9 @@ class RolesController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        if(!auth('api')->user()->can('edit_rol')){
+            return response()->json(["message" => "EL USUARIO NO ESTA AUTORIZADO"],403);
+        }
         $is_role = Role::where("id","<>",$id)->where("name",$request->name)->first();
         if ($is_role) {
             return response()->json([
@@ -96,6 +111,9 @@ class RolesController extends Controller
      */
     public function destroy(string $id)
     {
+        if(!auth('api')->user()->can('delete_rol')){
+            return response()->json(["message" => "EL USUARIO NO ESTA AUTORIZADO"],403);
+        }
         $role = Role::findOrFail($id);
         if ($role->users->count() > 0) {
             return response()->json([
@@ -108,5 +126,27 @@ class RolesController extends Controller
             "message"=>200,
             "message_text"=>"EL ROL SE ELIMINO CORRECTAMENTE"
         ]);
+    }
+
+    public function reporte(Request $request){
+        //$this->authorize('viewAny',User::class);
+        $name = $request->search;
+        $roles = Role::where("name","like","%".$name."%")->orderBy("id","desc")->get();
+        // $resultado =$roles;
+        // $resultado = $resultado->toJson();
+        // $resultado = json_decode($resultado, true);
+        $rolesData = $roles->map(function($rol) {
+            return [
+                "id" => $rol->id,
+                "name" => $rol->name,
+                "permission" => $rol->permissions,
+            ];
+        });
+        $resultado = $rolesData;
+                //dd($resultado);
+        // $pdf = PDF::setPaper('latter','landscape')->loadView('ReporteStaffs.pdf',compact('resultado'));
+        $pdf = PDF::setPaper('letter','landscape')->loadView('ReporteRoles.pdf',compact('resultado'));
+        //return $pdf->stream();
+        return $pdf->download();
     }
 }
