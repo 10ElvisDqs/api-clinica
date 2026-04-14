@@ -1,0 +1,111 @@
+services:
+
+  # ================= MySQL =================
+  db:
+    image: mysql:8.0
+    container_name: laravel_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: pruevabdcitasmedicas
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin123
+    ports:
+      - "3316:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - app_network
+
+  # ================= Laravel (PHP-FPM) =================
+  app:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: laravel_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    environment:
+      APP_ENV: production
+      APP_URL: http://192.168.100.9:8080
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: pruevabdcitasmedicas
+      DB_USERNAME: admin
+      DB_PASSWORD: admin123
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_network
+
+  # ================= NGINX + Angular (SPA) =================
+  # El contexto de build es ../ (carpeta padre) para poder acceder
+  # tanto a admin_clinica/ como a api-clinica/nginx/
+  nginx:
+    build:
+      context: ../
+      dockerfile: api-clinica/nginx/Dockerfile
+    container_name: laravel_nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      # Acceso a archivos de storage de Laravel (fotos, PDF, etc.)
+      - .:/var/www/html
+    depends_on:
+      - app
+    networks:
+      - app_network
+
+  # ================= phpMyAdmin =================
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: laravel_phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+    ports:
+      - "8081:80"
+    depends_on:
+      - db
+    networks:
+      - app_network
+
+volumes:
+  db_data:
+
+networks:
+  app_network:
+    driver: bridge
+
+# ─────────────────────────────────────────────────────────────────
+# IMPORTANTE: ejecutar desde dentro de api-clinica/
+#
+#   cd api-clinica
+#   docker-compose up -d --build
+#
+# Estructura esperada en el disco:
+#   carpeta-padre/
+#   ├── api-clinica/    ← aquí está este docker-compose.yml
+#   └── admin_clinica/
+#
+# Comandos útiles:
+#   Levantar todo:           docker-compose up -d --build
+#   Ver logs del backend:    docker-compose logs -f app
+#   Ver logs de nginx:       docker-compose logs -f nginx
+#   Artisan en contenedor:   docker-compose exec app php artisan <cmd>
+#   Bajar todo:              docker-compose down
+#   Bajar + borrar BD:       docker-compose down -v
+# ─────────────────────────────────────────────────────────────────

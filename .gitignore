@@ -1,19 +1,41 @@
-/.phpunit.cache
-/node_modules
+# ── Dependencias (se instalan con composer install) ────────────
+/vendor
+
+# ── Entorno (se crea automáticamente al primer docker-compose up) ──
+.env
+.env.backup
+.env.production
+
+# ── Archivos generados por Laravel ────────────────────────────
 /public/build
 /public/hot
 /public/storage
 /storage/*.key
-/vendor
-.env
-.env.backup
-.env.production
+/bootstrap/cache/*.php
+/storage/logs/*.log
+/storage/framework/cache/data/
+/storage/framework/sessions/
+/storage/framework/views/
+
+# ── Tests ──────────────────────────────────────────────────────
+/.phpunit.cache
 .phpunit.result.cache
-Homestead.json
-Homestead.yaml
-auth.json
+
+# ── Node (para Vite/Mix si se usa) ────────────────────────────
+/node_modules
 npm-debug.log
 yarn-error.log
+
+# ── IDEs ───────────────────────────────────────────────────────
 /.fleet
 /.idea
 /.vscode
+
+# ── Vagrant/Homestead (no se usa en este proyecto) ────────────
+Homestead.json
+Homestead.yaml
+auth.json
+
+# ── Sistema operativo ─────────────────────────────────────────
+.DS_Store
+Thumbs.db
